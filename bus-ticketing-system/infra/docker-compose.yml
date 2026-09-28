@@ -1,0 +1,113 @@
+# Bus Ticketing & Dispatch System — full local stack.
+# Run from the /infra directory:  docker compose up --build
+#
+# Bring up just the infra (useful while developing a single service in your IDE):
+#   docker compose up postgres redis mosquitto
+
+services:
+  # ---------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------
+  postgres:
+    image: postgres:16
+    container_name: bts-postgres
+    environment:
+      POSTGRES_USER: bts
+      POSTGRES_PASSWORD: bts_dev_password
+      POSTGRES_DB: bts
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bts -d bts"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: bts-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: bts-mosquitto
+    ports:
+      - "1883:1883" # native MQTT — used by backend Java services and the GPS simulator
+      - "9001:9001" # MQTT-over-WebSockets — used by browser clients (Driver Dashboard)
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+
+  # ---------------------------------------------------------------------
+  # Backend microservices
+  # ---------------------------------------------------------------------
+  dispatch:
+    build:
+      context: ../services/dispatch
+    container_name: bts-dispatch
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bts
+      SPRING_DATASOURCE_USERNAME: bts
+      SPRING_DATASOURCE_PASSWORD: bts_dev_password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      MQTT_BROKER_URL: tcp://mosquitto:1883
+      DISPATCH_GEOFENCE_THRESHOLD_METERS: 300
+    ports:
+      - "8081:8081"
+
+  ticketing:
+    build:
+      context: ../services/ticketing
+    container_name: bts-ticketing
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bts
+      SPRING_DATASOURCE_USERNAME: bts
+      SPRING_DATASOURCE_PASSWORD: bts_dev_password
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_replace_me}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_replace_me}
+      TICKET_HMAC_SECRET: ${TICKET_HMAC_SECRET:-dev_only_change_me_to_a_long_random_string}
+      TICKET_EXPIRY_MINUTES: 90
+    ports:
+      - "8082:8082"
+
+  gateway:
+    build:
+      context: ../gateway
+    container_name: bts-gateway
+    depends_on:
+      - dispatch
+      - ticketing
+      - redis
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      GATEWAY_JWT_SECRET: ${GATEWAY_JWT_SECRET:-dev_only_change_me_to_a_long_random_string_min_32_bytes}
+      DISPATCH_SERVICE_URI: http://dispatch:8081
+      TICKETING_SERVICE_URI: http://ticketing:8082
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres-data:
+  mosquitto-data:
+  mosquitto-log:

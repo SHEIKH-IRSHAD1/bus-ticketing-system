@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ticketing_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+
+ticket:
+  hmac-secret: test_secret_key_not_for_production_use_only_in_tests
+  expiry-minutes: 90
+  price-amount-cents: 5000
+  price-currency: usd
+
+stripe:
+  secret-key: sk_test_dummy
+  webhook-secret: whsec_dummy
+  success-url-base: http://localhost/success
+  cancel-url: http://localhost/cancel

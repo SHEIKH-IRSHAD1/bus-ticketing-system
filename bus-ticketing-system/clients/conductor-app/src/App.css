@@ -1,0 +1,17 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; }
+.app { max-width: 480px; margin: 0 auto; padding: 16px; min-height: 100vh; }
+h1 { text-align: center; color: #065f46; margin: 8px 0 16px; font-size: 1.4rem; }
+.scanner-box { background: #000; border-radius: 14px; overflow: hidden; }
+.hint { text-align: center; color: #6b7280; margin-top: 12px; }
+.result { border-radius: 16px; padding: 32px 20px; text-align: center; color: #fff; }
+.result.pass { background: #15803d; }
+.result.fail { background: #b91c1c; }
+.result .icon { font-size: 5rem; line-height: 1; }
+.result .title { font-size: 2rem; font-weight: 700; margin-top: 8px; }
+.result .reason { font-size: 1.15rem; margin-top: 8px; opacity: 0.95; }
+.next {
+  width: 100%; margin-top: 16px; padding: 18px; font-size: 1.2rem; font-weight: 600;
+  border: none; border-radius: 12px; background: #065f46; color: #fff; cursor: pointer;
+}
+.error { color: #b91c1c; text-align: center; margin-top: 12px; }

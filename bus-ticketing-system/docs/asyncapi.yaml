@@ -1,0 +1,47 @@
+asyncapi: 2.6.0
+info:
+  title: Bus Ticketing - MQTT contract
+  version: 1.0.0
+  description: >
+    Real-time messages exchanged over the Mosquitto broker.
+    Native MQTT on port 1883 (backend services, GPS simulator);
+    MQTT-over-WebSockets on port 9001 (Driver Dashboard in the browser).
+servers:
+  local:
+    url: localhost:1883
+    protocol: mqtt
+channels:
+  bus/{busId}/gps:
+    description: A bus publishes its position here every few seconds. Consumed by the Dispatch Engine.
+    parameters:
+      busId:
+        schema: { type: string, example: bus-1 }
+    publish:
+      message:
+        payload:
+          type: object
+          required: [busId, routeId, lat, lon, timestamp]
+          properties:
+            busId:     { type: string, example: bus-1 }
+            routeId:   { type: integer, example: 1, description: Route the bus is serving; selects which pending stop requests to check. }
+            lat:       { type: number, example: 12.9716 }
+            lon:       { type: number, example: 77.5946 }
+            timestamp: { type: integer, description: Unix epoch milliseconds }
+  alerts/{busId}/stop:
+    description: >
+      Published by the Dispatch Engine when a bus comes within the geofence
+      threshold (default 300 m) of a stop with a pending passenger request.
+      Fired once per request. Consumed by the Driver Dashboard.
+    parameters:
+      busId:
+        schema: { type: string, example: bus-1 }
+    subscribe:
+      message:
+        payload:
+          type: object
+          properties:
+            busId:          { type: string }
+            stopId:         { type: integer }
+            stopName:       { type: string, example: City Hall }
+            destination:    { type: string, example: Museum Road }
+            distanceMeters: { type: number, example: 287.4 }

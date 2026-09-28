@@ -1,0 +1,13 @@
+{
+  "name": "gps-simulator",
+  "version": "1.0.0",
+  "description": "Publishes fake GPS pings over MQTT so the Dispatch Engine can be tested standalone, without any other service running.",
+  "type": "module",
+  "main": "simulate.js",
+  "scripts": {
+    "start": "node simulate.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.1"
+  }
+}
